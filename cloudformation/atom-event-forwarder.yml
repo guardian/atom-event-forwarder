@@ -4,14 +4,23 @@ Parameters:
   CapiStreamArn:
     Type: String
     Description: Arn of the Crier kinesis stream to attach to
+  DestinationStreamName:
+    Type: String
+    Description: Name, not ARN, of a Kinesis string to forward on to
+  DestinationTopicArn:
+    Type: String
+    Description: ARN of an SNS topic to forward on to
+  CrossAccountRoleArn:
+    Type: String
+    Description: ARN of a cross-account role to assume when posting messages out
   App:
     Type: String
     Description: Application identifier for RiffRaff
-    Default: launchdetector
+    Default: atom-event-forwarder
   Stack:
     Type: String
     Description: Stack identifier for RiffRaff
-    Default: multimedia
+    Default: content-api
   Stage:
     Type: String
     AllowedValues:
@@ -19,12 +28,6 @@ Parameters:
       - DEV
       - PROD
     Description: Deployment stage
-  VPCID:
-    Description: Virtual Private Cloud to deploy into
-    Type: AWS::EC2::VPC::Id
-  DeploySubnets:
-    Description: Subnets to deploy into.  These should be the same as where the database lives.
-    Type: List<AWS::EC2::Subnet::Id>
 Resources:
   LambdaSG:
     Type: AWS::EC2::SecurityGroup
@@ -93,7 +96,7 @@ Resources:
         S3Key: !Sub ${Stack}/${Stage}/${App}/launchdetector_lambda.jar
       Description: Launch Detector which updates Pluto with fresh information from Capi
       FunctionName: !Sub launchdetector-${Stage}
-      Handler: LaunchDetectorLambda
+      Handler: AtomForwarderLambda
       Role: !Sub ${LambdaRole.Arn}
       Runtime: java8
       Timeout: 60
@@ -102,6 +105,9 @@ Resources:
       Environment:
         Variables:
           CRIER_STREAM: !Ref CapiStreamArn
+          DESTINATION_STREAM_NAME: !Ref DestinationStreamName
+          DESTINATION_TOPIC_ARN: !Ref DestinationTopicArn
+          CROSS_ACCOUNT_ROLE_ARN: !Ref CrossAccountRoleArn
       VpcConfig:
         SecurityGroupIds:
           - !Ref LambdaSG

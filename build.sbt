@@ -1,16 +1,15 @@
 enablePlugins(RiffRaffArtifact, AssemblyPlugin)
 
-name := "launchdetector"
+name := "atom-event-forwarder"
 
 version := "0.1"
 
 scalaVersion := "2.12.3"
 
-// https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk
 libraryDependencies ++= Seq(
-  //"com.amazonaws" % "aws-java-sdk" % "1.11.207",
   "com.amazonaws" % "aws-lambda-java-core" % "1.1.0",
   "com.amazonaws" % "aws-lambda-java-events" % "1.3.0",
+  "com.amazonaws" % "aws-java-sdk-sts" % "1.11.208",
   "com.amazonaws" % "amazon-kinesis-client" % "1.8.5"
 )
 
@@ -31,9 +30,12 @@ libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
 
 lazy val app = (project in file(".")).settings(
   organization := "com.theguardian",
-  assemblyJarName in assembly := "launchdetector_lambda.jar",
+  assemblyJarName in assembly := "atom-event-forwarder.jar",
 
 )
+
+/* don't run tests in the assembly stage, in CI these are run as a seperate stage */
+test in assembly := {}
 
 assemblyMergeStrategy in assembly := {
   case "shared.thrift" => MergeStrategy.discard
@@ -49,4 +51,4 @@ riffRaffManifestRevision := sys.env.getOrElse("CIRCLE_BUILD_NUM","SNAPSHOT")
 riffRaffManifestVcsUrl := sys.env.getOrElse("CIRCLE_BUILD_URL", "")
 riffRaffBuildIdentifier := sys.env.getOrElse("CIRCLE_BUILD_NUM", "SNAPSHOT")
 
-riffRaffManifestProjectName := "multimedia:launchdetector"
+riffRaffManifestProjectName := "atom-event-forwarder"

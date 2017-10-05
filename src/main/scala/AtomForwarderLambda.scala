@@ -10,26 +10,37 @@ import com.gu.crier.model.event.v1._
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Try
 
-class LaunchDetectorLambda extends RequestHandler[KinesisEvent, Unit] {
+class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] {
   override def handleRequest(event:KinesisEvent, context: Context): Unit = {
     val rawRecords: List[Record] = event.getRecords.asScala.map(_.getKinesis).toList
     val userRecords = UserRecord.deaggregate(rawRecords.asJava)
 
     println(s"Processing ${userRecords.size} records ...")
-    CrierEventProcessor.process(userRecords.asScala) { event=>
+    CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
       event.itemType match {
         case ItemType.Atom=>
-          event.payload.exists({
+          event.payload.map({
             case EventPayload.Atom(atom)=>
-              AtomEventProcessor.process(atom, event.eventType)
+              Future.sequence(Seq(
+                SNSHandler.tellSNS(record),
+                KinesisHandler.tellKinesis(record)
+              )).map({ futureSeq=>
+                //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
+                futureSeq.head || futureSeq(1)
+              })
             case _=>
-              false
-          })
+              Future(false)
+          }).getOrElse(Future(false))
         case _=>
           println("This event is for something other than an atom, not going to do anything.")
-          false
+          Future(false)
       }
-    }
+    }.onComplete({ totalProcessed:Try[Int]=>
+      println(s"Processed a total of ${totalProcessed.get} records successfully")
+    })
   }
 }
