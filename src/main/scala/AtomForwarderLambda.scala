@@ -26,7 +26,7 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] {
           event.payload.map({
             case EventPayload.Atom(atom)=>
               Future.sequence(Seq(
-                SNSHandler.tellSNS(record),
+                SNSHandler.tellSNS(event),
                 KinesisHandler.tellKinesis(record)
               )).map({ futureSeq=>
                 //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.

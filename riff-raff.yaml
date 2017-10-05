@@ -1,4 +1,4 @@
-stacks: [ContentApi]
+stacks: [multimedia]
 regions: [eu-west-1]
 
 deployments:
