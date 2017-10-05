@@ -1,0 +1,12 @@
+stacks: [ContentApi]
+regions: [eu-west-1]
+
+deployments:
+  atom-event-forwarder:
+    type: aws-lambda
+    app: atom-event-forwarder
+    parameters:
+      bucket: gnm-multimedia-rr-deployables
+      fileName: event_forwarder_lambda.jar
+      functionNames: [atom-event-forwarder-]
+      prefixStack: false

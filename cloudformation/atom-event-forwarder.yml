@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "Lambda function to update Pluto with published information from CAPI"
+Parameters:
+  CapiStreamArn:
+    Type: String
+    Description: Arn of the Crier kinesis stream to attach to
+  App:
+    Type: String
+    Description: Application identifier for RiffRaff
+    Default: launchdetector
+  Stack:
+    Type: String
+    Description: Stack identifier for RiffRaff
+    Default: multimedia
+  Stage:
+    Type: String
+    AllowedValues:
+      - CODE
+      - DEV
+      - PROD
+    Description: Deployment stage
+  VPCID:
+    Description: Virtual Private Cloud to deploy into
+    Type: AWS::EC2::VPC::Id
+  DeploySubnets:
+    Description: Subnets to deploy into.  These should be the same as where the database lives.
+    Type: List<AWS::EC2::Subnet::Id>
+Resources:
+  LambdaSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription:  Launch Detector lambda function security group
+      VpcId: !Ref VPCID
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: LambdaLogAccess
+          PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                Effect: Allow
+                Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+                - logs:PutLogEvents
+                Resource: "*"
+        - PolicyName: LambdaVPCAccess
+          PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                Effect: Allow
+                Action:
+                - ec2:CreateNetworkInterface
+                - ec2:DescribeNetworkInterfaces
+                - ec2:DeleteNetworkInterface
+                Resource: "*"
+        - PolicyName: LambdaDLQAccess
+          PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                Effect: Allow
+                Action:
+                - sqs:SendMessage
+                - sqs:SendMessageBatch
+                Resource: !GetAtt DeadLetterQueue.Arn
+        - PolicyName: KinesisAccess
+          PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                Effect: Allow
+                Action:
+                - kinesis:GetRecords
+                - kinesis:GetShardIterator
+                - kinesis:DescribeStream
+                - kinesis:ListStreams
+                Resource: !Ref CapiStreamArn
+  DeadLetterQueue:
+    Type: AWS::SQS::Queue
+  LaunchDetectorLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket: gnm-multimedia-rr-deployables
+        S3Key: !Sub ${Stack}/${Stage}/${App}/launchdetector_lambda.jar
+      Description: Launch Detector which updates Pluto with fresh information from Capi
+      FunctionName: !Sub launchdetector-${Stage}
+      Handler: LaunchDetectorLambda
+      Role: !Sub ${LambdaRole.Arn}
+      Runtime: java8
+      Timeout: 60
+#      DeadLetterConfig:
+#        TargetArn: !GetAtt DeadLetterQueue.Arn
+      Environment:
+        Variables:
+          CRIER_STREAM: !Ref CapiStreamArn
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref LambdaSG
+        SubnetIds: !Ref DeploySubnets
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: kinesis.amazonaws.com
+      SourceArn: !Ref CapiStreamArn
+      FunctionName: !Sub ${LaunchDetectorLambda.Arn}
