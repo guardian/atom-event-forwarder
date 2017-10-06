@@ -1,5 +1,3 @@
-import java.util.Base64
-
 import com.amazonaws.SdkBaseException
 import com.amazonaws.services.sns.AmazonSNSClient
 import com.amazonaws.services.sns.model.PublishRequest
@@ -17,10 +15,7 @@ import io.circe.generic.auto
 import com.gu.contentapi.json.CirceEncoders
 import com.gu.contentatom.thrift.Atom
 
-//implicit def eventEncoder:io.circe.Encoder[Event] = {
-//  Encoder.
-//}
-object SNSHandler extends Logging {
+object SNSHandler extends CrossAccount with Logging {
 /*
   def payloadId : _root_.scala.Predef.String
   def eventType : com.gu.crier.model.event.v1.EventType
@@ -59,7 +54,7 @@ object SNSHandler extends Logging {
     )
   }
 
-  def getClient:AmazonSNSClient = new AmazonSNSClient()
+  def getClient:AmazonSNSClient = new AmazonSNSClient(assumeRoleCredentials)
 
   def eventToJson(event:Event):Option[String] = {
     event.itemType match {
