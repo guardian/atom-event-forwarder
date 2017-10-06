@@ -26,5 +26,6 @@ deployment:
   riffraff_deploy:
     branch: /.*/
     commands:
-      - sbt assembly
+      #seperate assembly seems pointless as i can't stop riffRafUpload from doing it :(
+      #- sbt assembly
       - sbt riffRaffUpload
