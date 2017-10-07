@@ -14,6 +14,7 @@ import io.circe.syntax._
 import io.circe.generic.auto
 import com.gu.contentapi.json.CirceEncoders
 import com.gu.contentatom.thrift.Atom
+import com.gu.contentapi.client.model.v1.Content
 
 object SNSHandler extends CrossAccount with Logging {
 /*
@@ -24,6 +25,7 @@ object SNSHandler extends CrossAccount with Logging {
   def payload : scala.Option[com.gu.crier.model.event.v1.EventPayload]
  */
   implicit val encodeAtom:Encoder[Atom] = CirceEncoders.atomEncoder
+  implicit val encodeContent:Encoder[Content] = CirceEncoders.contentEncoder
 
   implicit val encodePayload: Encoder[Option[EventPayload]] = new Encoder[Option[EventPayload]] {
     def getPayloadData:Option[EventPayload] => Json = {
@@ -31,6 +33,8 @@ object SNSHandler extends CrossAccount with Logging {
         payload match {
           case EventPayload.Atom(atom)=>
             Json.obj(("atom", atom.asInstanceOf[Atom].asJson))
+          case EventPayload.Content(content)=>
+            Json.obj(("content", content.asInstanceOf[Content].asJson))
           case _=>
             Json.Null
         }
@@ -61,6 +65,11 @@ object SNSHandler extends CrossAccount with Logging {
       case ItemType.Atom=>
         event.payload.map({
           case EventPayload.Atom(atom)=>
+            event.asJson.noSpaces
+        })
+      case ItemType.Content=>
+        event.payload.map({
+          case EventPayload.Content(content)=>
             event.asJson.noSpaces
         })
       case _=>None

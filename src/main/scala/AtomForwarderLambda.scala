@@ -8,13 +8,14 @@ import com.amazonaws.services.lambda.runtime
 import com.gu.contentatom.thrift.Atom
 import com.gu.crier.model.event.v1._
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
+import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
 
-class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] {
+class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Logging {
   def itemTypeAsString(itemType: ItemType): String = itemType match {
     case ItemType.Content=>"Content"
     case ItemType.Section=>"Section"
@@ -49,6 +50,21 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] {
                 futureSeq.head || futureSeq(1)
               })
             case _=>
+              Future(false)
+          }).getOrElse(Future(false))
+        case ItemType.Content=>
+          event.payload.map({
+            case EventPayload.Content(content)=>
+              logger.info("Got a content payload, forwarding on...")
+              Future.sequence(Seq(
+                SNSHandler.tellSNS(event),
+                KinesisHandler.tellKinesis(record)
+              )).map({ futureSeq=>
+                //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
+                futureSeq.head || futureSeq(1)
+              })
+            case _=>
+              logger.error("Got a non-content payload for a content event")
               Future(false)
           }).getOrElse(Future(false))
         case _=>
