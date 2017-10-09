@@ -11,7 +11,8 @@ import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.JavaConverters._
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
 
@@ -37,7 +38,7 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
 
 
     logger.info(s"${context.getAwsRequestId} Processing ${userRecords.size} records ...")
-    CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
+    val processingFuture = CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
       event.itemType match {
         case ItemType.Atom=>
           event.payload.map({
@@ -65,15 +66,21 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
                 futureSeq.head || futureSeq(1)
               })
             case _=>
-              logger.error("Got a non-content payload for a content event")
+              logger.error(s"${context.getAwsRequestId} Got a non-content payload for a content event")
               Future(false)
           }).getOrElse(Future(false))
         case _=>
-          logger.warn(s"This event is for a ${itemTypeAsString(event.itemType)} ${eventTypeAsString(event.eventType)}, not going to do anything.")
+          logger.warn(s"${context.getAwsRequestId} This event is for a ${itemTypeAsString(event.itemType)} ${eventTypeAsString(event.eventType)}, not going to do anything.")
           Future(false)
       }
-    }.onComplete({ totalProcessed:Try[Int]=>
-      logger.info(s"Processed a total of ${totalProcessed.get} records successfully")
+    }
+
+    processingFuture.onComplete({ totalProcessed:Try[Int]=>
+      logger.info(s"${context.getAwsRequestId} Processed a total of ${totalProcessed.get} records successfully")
     })
+
+    logger.info(s"${context.getAwsRequestId} waiting for threads")
+    Await.result(processingFuture, 60 seconds)
+    logger.info(s"${context.getAwsRequestId} completed")
   }
 }
