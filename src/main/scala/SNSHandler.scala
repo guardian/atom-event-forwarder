@@ -6,8 +6,7 @@ import com.amazonaws.services.kinesis.model.Record
 import com.gu.crier.model.event.v1.{Event, EventPayload, ItemType, _}
 import org.apache.logging.log4j.scala.Logging
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.parser._
@@ -25,6 +24,8 @@ object SNSHandler extends CrossAccount with Logging {
   def dateTime : scala.Long
   def payload : scala.Option[com.gu.crier.model.event.v1.EventPayload]
  */
+  implicit val ec:ExecutionContext = ThreadExecContext.ec
+
   implicit val encodeAtom:Encoder[Atom] = CirceEncoders.atomEncoder
   implicit val encodeContent:Encoder[Content] = CirceEncoders.contentEncoder
 
@@ -60,8 +61,10 @@ object SNSHandler extends CrossAccount with Logging {
   }
 
   //def getClient:AmazonSNSClient = new AmazonSNSClient(assumeRoleCredentials)
-  def getClient:AmazonSNS =
-    AmazonSNSClientBuilder.standard().withRegion(Regions.EU_WEST_1).withCredentials(assumeRoleCredentials).build()
+  def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
+    case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
+    case None=>AmazonSNSClientBuilder.standard ().withCredentials (assumeRoleCredentials).build ()
+  }
 
   def eventToJson(event:Event):Option[String] = {
     event.itemType match {

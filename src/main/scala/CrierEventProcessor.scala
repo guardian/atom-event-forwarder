@@ -3,11 +3,11 @@ import com.amazonaws.services.kinesis.model.Record
 import com.gu.crier.model.event.v1.Event
 import org.apache.logging.log4j.scala.Logging
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object CrierEventProcessor extends Logging {
+  implicit val ec:ExecutionContext = ThreadExecContext.ec
   def process(records:Seq[Record])(func: (Event,Record)=>Future[Boolean]):Future[Int] = {
     /*
     Asynchronously processes a batch of records.  Returns a future that will evaluate to the total number correctly processed

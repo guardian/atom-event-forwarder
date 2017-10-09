@@ -11,12 +11,13 @@ import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import org.apache.logging.log4j.scala.Logging
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
 
 class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Logging {
+  implicit val ec:ExecutionContext = ThreadExecContext.ec
+
   def itemTypeAsString(itemType: ItemType): String = itemType match {
     case ItemType.Content=>"Content"
     case ItemType.Section=>"Section"
