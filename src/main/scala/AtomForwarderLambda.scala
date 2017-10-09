@@ -36,7 +36,6 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
     val rawRecords: List[Record] = event.getRecords.asScala.map(_.getKinesis).toList
     val userRecords = UserRecord.deaggregate(rawRecords.asJava)
 
-
     logger.info(s"${context.getAwsRequestId} Processing ${userRecords.size} records ...")
     val processingFuture = CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
       event.itemType match {

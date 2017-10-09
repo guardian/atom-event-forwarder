@@ -14,11 +14,13 @@ libraryDependencies ++= Seq(
   "io.circe" %% "circe-parser"
 ).map(_ % circeVersion)
 
+
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.1.0",
   "com.amazonaws" % "aws-lambda-java-events" % "1.3.0",
   "com.amazonaws" % "aws-java-sdk-sts" % "1.11.208",
-  "com.amazonaws" % "amazon-kinesis-client" % "1.8.5"
+  "com.amazonaws" % "amazon-kinesis-client" % "1.8.5",
+  "com.amazonaws" % "aws-java-sdk-sns" % "1.11.210"
 )
 
 // https://mvnrepository.com/artifact/com.gu/content-api-models-scala

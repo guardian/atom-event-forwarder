@@ -90,6 +90,14 @@ Resources:
                 - kinesis:ListStreams
                 #??? - does this need to be *???
                 Resource: !Ref CapiStreamArn
+        - PolicyName: CrossAccountAccess
+          PolicyDocument:
+              Version: 2012-10-17
+              Statement:
+                Effect: Allow
+                Action:
+                - sts:AssumeRule
+                Resource: !Ref CrossAccountRoleArn
   DeadLetterQueue:
     Type: AWS::SQS::Queue
   LaunchDetectorLambda:

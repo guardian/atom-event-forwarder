@@ -1,5 +1,6 @@
 import com.amazonaws.SdkBaseException
-import com.amazonaws.services.sns.AmazonSNSClient
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.sns.{AmazonSNS, AmazonSNSClientBuilder}
 import com.amazonaws.services.sns.model.PublishRequest
 import com.amazonaws.services.kinesis.model.Record
 import com.gu.crier.model.event.v1.{Event, EventPayload, ItemType, _}
@@ -58,7 +59,9 @@ object SNSHandler extends CrossAccount with Logging {
     )
   }
 
-  def getClient:AmazonSNSClient = new AmazonSNSClient(assumeRoleCredentials)
+  //def getClient:AmazonSNSClient = new AmazonSNSClient(assumeRoleCredentials)
+  def getClient:AmazonSNS =
+    AmazonSNSClientBuilder.standard().withRegion(Regions.EU_WEST_1).withCredentials(assumeRoleCredentials).build()
 
   def eventToJson(event:Event):Option[String] = {
     event.itemType match {
