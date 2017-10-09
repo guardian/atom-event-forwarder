@@ -30,17 +30,24 @@ libraryDependencies += "com.gu" %% "content-api-models-json" % "11.31"
 // https://mvnrepository.com/artifact/org.scalatest/scalatest_2.12
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 
-libraryDependencies += "org.apache.logging.log4j" % "log4j-api" % "2.9.1"
+// https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-log4j
+libraryDependencies += "com.amazonaws" % "aws-lambda-java-log4j" % "1.0.0"
 
-libraryDependencies += "org.apache.logging.log4j" % "log4j-core" % "2.9.1"
-
-libraryDependencies += "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0"
+//logging
+libraryDependencies ++= Seq(
+  "org.apache.logging.log4j" % "log4j-api" % "2.9.1",
+  "org.apache.logging.log4j" % "log4j-core" % "2.9.1",
+  "org.apache.logging.log4j" %% "log4j-api-scala" % "11.0",
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % "2.7.3",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4"
+)
 
 lazy val app = (project in file(".")).settings(
   organization := "com.theguardian",
   assemblyJarName in assembly := "atom-event-forwarder.jar",
-
 )
+
+unmanagedResourceDirectories in Compile += baseDirectory.value / "conf"
 
 /* don't run tests in the assembly stage, in CI these are run as a seperate stage */
 test in assembly := {}

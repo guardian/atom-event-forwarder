@@ -17,6 +17,10 @@ Parameters:
     Type: Number
     Description: The lambda should get called with this many messages at once
     Default: 100
+  ThreadCount:
+    Type: Number
+    Description: Maximum number of threads the lambda should use
+    Default: 8
   App:
     Type: String
     Description: Application identifier for RiffRaff
@@ -109,6 +113,7 @@ Resources:
           DESTINATION_STREAM_NAME: !Ref DestinationStreamName
           DESTINATION_TOPIC_ARN: !Ref DestinationTopicArn
           CROSS_ACCOUNT_ROLE_ARN: !Ref CrossAccountRoleArn
+          JAVA_TOOL_OPTIONS: !Sub -Dscala.concurrent.context.numThreads=${ThreadCount} -Dscala.concurrent.context.maxThreads=${ThreadCount}
 #  LambdaInvokePermission:
 #    Type: AWS::Lambda::Permission
 #    Properties:

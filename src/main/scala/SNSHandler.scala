@@ -76,7 +76,7 @@ object SNSHandler extends CrossAccount with Logging {
     }
   }
 
-  def tellSNS(event:Event):Future[Boolean] = Future {
+  def tellSNS(event:Event, awsId: String):Future[Boolean] = Future {
     sys.env.get("DESTINATION_TOPIC_ARN") match {
       case Some(topicArn)=>
         eventToJson(event) match {
@@ -84,20 +84,20 @@ object SNSHandler extends CrossAccount with Logging {
             val rq = new PublishRequest().withTopicArn(topicArn).withMessage(jsonContent)
             try {
               val result = getClient.publish(rq)
-              logger.info(s"Message has been sent with ID ${result.getMessageId}")
+              logger.info(s"$awsId Message has been sent with ID ${result.getMessageId}")
               true
             } catch {
               case e:SdkBaseException=>
-                logger.error(s"Unable to send message: ${e.getMessage}")
+                logger.error(s"$awsId Unable to send message: ${e.getMessage}")
                 false
             }
           case None=>
-            logger.info(s"This wasn't an atom so not touching it.")
+            logger.info(s"$awsId This wasn't a known event so not touching it.")
             false
         }
 
       case None=>
-        logger.info("No topic ARN configured so not sending to SNS")
+        logger.info(s"$awsId No topic ARN configured so not sending to SNS")
         false
     }
   }

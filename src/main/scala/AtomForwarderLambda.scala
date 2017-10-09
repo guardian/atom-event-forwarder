@@ -35,15 +35,16 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
     val rawRecords: List[Record] = event.getRecords.asScala.map(_.getKinesis).toList
     val userRecords = UserRecord.deaggregate(rawRecords.asJava)
 
-    println(s"Processing ${userRecords.size} records ...")
+
+    logger.info(s"${context.getAwsRequestId} Processing ${userRecords.size} records ...")
     CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
       event.itemType match {
         case ItemType.Atom=>
           event.payload.map({
             case EventPayload.Atom(atom)=>
-              println("Got an atom payload, forwarding on...")
+              logger.info(s"${context.getAwsRequestId} Got an atom payload, forwarding on...")
               Future.sequence(Seq(
-                SNSHandler.tellSNS(event),
+                SNSHandler.tellSNS(event, context.getAwsRequestId),
                 KinesisHandler.tellKinesis(record)
               )).map({ futureSeq=>
                 //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
@@ -55,9 +56,9 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
         case ItemType.Content=>
           event.payload.map({
             case EventPayload.Content(content)=>
-              logger.info("Got a content payload, forwarding on...")
+              logger.info(s"${context.getAwsRequestId} Got a content payload, forwarding on...")
               Future.sequence(Seq(
-                SNSHandler.tellSNS(event),
+                SNSHandler.tellSNS(event, context.getAwsRequestId),
                 KinesisHandler.tellKinesis(record)
               )).map({ futureSeq=>
                 //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
@@ -68,11 +69,11 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
               Future(false)
           }).getOrElse(Future(false))
         case _=>
-          println(s"This event is for a ${itemTypeAsString(event.itemType)} ${eventTypeAsString(event.eventType)}, not going to do anything.")
+          logger.warn(s"This event is for a ${itemTypeAsString(event.itemType)} ${eventTypeAsString(event.eventType)}, not going to do anything.")
           Future(false)
       }
     }.onComplete({ totalProcessed:Try[Int]=>
-      println(s"Processed a total of ${totalProcessed.get} records successfully")
+      logger.info(s"Processed a total of ${totalProcessed.get} records successfully")
     })
   }
 }
