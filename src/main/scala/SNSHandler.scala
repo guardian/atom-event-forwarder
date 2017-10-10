@@ -8,9 +8,8 @@ import scala.concurrent.{ExecutionContext, Future}
 import io.circe._
 import io.circe.generic.auto._
 import io.circe.syntax._
-import com.gu.contentapi.json.CirceEncoders
-import com.gu.contentatom.thrift.Atom
-import com.gu.contentapi.client.model.v1.Content
+import com.gu.contentapi.json.CirceEncoders._
+import com.gu.fezziwig.CirceScroogeMacros.{encodeThriftStruct, encodeThriftUnion}
 
 object SNSHandler extends CrossAccount with Logging {
 /*
@@ -22,75 +21,27 @@ object SNSHandler extends CrossAccount with Logging {
  */
   implicit val ec:ExecutionContext = ThreadExecContext.ec
 
-  implicit val encodeAtom:Encoder[Atom] = CirceEncoders.atomEncoder
-  implicit val encodeContent:Encoder[Content] = CirceEncoders.contentEncoder
-
-  implicit val encodePayload: Encoder[Option[EventPayload]] = new Encoder[Option[EventPayload]] {
-    def getPayloadData:Option[EventPayload] => Json = {
-      case Some(payload)=>
-        payload match {
-          case EventPayload.Atom(atom)=>
-            Json.obj(("atom", atom.asInstanceOf[Atom].asJson))
-          case _=>
-            Json.Null
-        }
-      case None=>
-        Json.Null
-    }
-
-    override final def apply(a: Option[EventPayload]): Json = getPayloadData(a)
-  }
-
-  implicit val encodeEvent: Encoder[Event] = new Encoder[Event] {
-    final def apply(event: Event): Json = Json.obj(
-      ("payloadId", Json.fromString(event.payloadId)),
-      ("eventType", event.eventType.asJson),
-      ("itemType", event.itemType.asJson),
-      ("dateTime", Json.fromLong(event.dateTime)),
-      ("payload", event.payload.asJson)
-    )
-  }
-
   //for some reason SNS gives a "Bad request" if you don't give a specific region to operate in and rely on auto-detection.
   def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
     case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
     case None=>AmazonSNSClientBuilder.standard ().withCredentials (assumeRoleCredentials).build ()
   }
 
-  def eventToJson(event:Event):Option[String] = {
-    event.itemType match {
-      case ItemType.Atom=>
-        event.payload.map({
-          case EventPayload.Atom(atom)=>
-            event.asJson.noSpaces
-        })
-      case ItemType.Content=>
-        event.payload.map({
-          case EventPayload.Content(content)=>
-            event.asJson.noSpaces
-        })
-      case _=>None
-    }
-  }
+  def eventToJson(event: Event): Json = event.asJson
 
   def tellSNS(event:Event, awsId: String):Future[Boolean] = Future {
     sys.env.get("DESTINATION_TOPIC_ARN") match {
       case Some(topicArn)=>
-        eventToJson(event) match {
-          case Some(jsonContent)=>
-            val rq = new PublishRequest().withTopicArn(topicArn).withMessage(jsonContent)
-            try {
-              val result = getClient.publish(rq)
-              logger.info(s"$awsId Message has been sent with ID ${result.getMessageId}")
-              true
-            } catch {
-              case e:SdkBaseException=>
-                logger.error(s"$awsId Unable to send message: ${e.getMessage}")
-                throw e
-            }
-          case None=>
-            logger.info(s"$awsId This wasn't a known event so not touching it.")
-            false
+        val json = eventToJson(event)
+        val rq = new PublishRequest().withTopicArn(topicArn).withMessage(json.noSpaces)
+        try {
+          val result = getClient.publish(rq)
+          logger.info(s"$awsId Message has been sent with ID ${result.getMessageId}")
+          true
+        } catch {
+          case e:SdkBaseException=>
+            logger.error(s"$awsId Unable to send message: ${e.getMessage}")
+            throw e
         }
 
       case None=>
