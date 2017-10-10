@@ -1,17 +1,13 @@
 import com.amazonaws.SdkBaseException
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.sns.{AmazonSNS, AmazonSNSClientBuilder}
 import com.amazonaws.services.sns.model.PublishRequest
-import com.amazonaws.services.kinesis.model.Record
 import com.gu.crier.model.event.v1.{Event, EventPayload, ItemType, _}
 import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 import io.circe._
 import io.circe.generic.auto._
-import io.circe.parser._
 import io.circe.syntax._
-import io.circe.generic.auto
 import com.gu.contentapi.json.CirceEncoders
 import com.gu.contentatom.thrift.Atom
 import com.gu.contentapi.client.model.v1.Content
