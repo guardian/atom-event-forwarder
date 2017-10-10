@@ -35,6 +35,10 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.4" % "test"
 // https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-log4j
 libraryDependencies += "com.amazonaws" % "aws-lambda-java-log4j" % "1.0.0"
 
+// https://mvnrepository.com/artifact/com.gu/fezziwig_2.12
+libraryDependencies += "com.gu" %% "fezziwig" % "0.7"
+
+
 //logging
 libraryDependencies ++= Seq(
   "org.apache.logging.log4j" % "log4j-api" % "2.9.1",

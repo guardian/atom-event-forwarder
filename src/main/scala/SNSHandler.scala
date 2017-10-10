@@ -5,12 +5,8 @@ import com.gu.crier.model.event.v1.{Event, EventPayload, ItemType, _}
 import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
-import io.circe._
-import io.circe.generic.auto._
 import io.circe.syntax._
-import com.gu.contentapi.json.CirceEncoders
-import com.gu.contentatom.thrift.Atom
-import com.gu.contentapi.client.model.v1.Content
+
 import com.gu.fezziwig.CirceScroogeMacros._
 
 object SNSHandler extends CrossAccount with Logging {
