@@ -1,60 +1,19 @@
 import com.amazonaws.SdkBaseException
-import com.amazonaws.regions.Regions
 import com.amazonaws.services.sns.{AmazonSNS, AmazonSNSClientBuilder}
 import com.amazonaws.services.sns.model.PublishRequest
-import com.amazonaws.services.kinesis.model.Record
 import com.gu.crier.model.event.v1.{Event, EventPayload, ItemType, _}
 import org.apache.logging.log4j.scala.Logging
 
 import scala.concurrent.{ExecutionContext, Future}
 import io.circe._
 import io.circe.generic.auto._
-import io.circe.parser._
 import io.circe.syntax._
-import io.circe.generic.auto
 import com.gu.contentapi.json.CirceEncoders
 import com.gu.contentatom.thrift.Atom
 import com.gu.contentapi.client.model.v1.Content
+import com.gu.fezziwig.CirceScroogeMacros._
 
 object SNSHandler extends CrossAccount with Logging {
-/*
-  def payloadId : _root_.scala.Predef.String
-  def eventType : com.gu.crier.model.event.v1.EventType
-  def itemType : com.gu.crier.model.event.v1.ItemType
-  def dateTime : scala.Long
-  def payload : scala.Option[com.gu.crier.model.event.v1.EventPayload]
- */
-  implicit val ec:ExecutionContext = ThreadExecContext.ec
-
-  implicit val encodeAtom:Encoder[Atom] = CirceEncoders.atomEncoder
-  implicit val encodeContent:Encoder[Content] = CirceEncoders.contentEncoder
-
-  implicit val encodePayload: Encoder[Option[EventPayload]] = new Encoder[Option[EventPayload]] {
-    def getPayloadData:Option[EventPayload] => Json = {
-      case Some(payload)=>
-        payload match {
-          case EventPayload.Atom(atom)=>
-            Json.obj(("atom", atom.asInstanceOf[Atom].asJson))
-          case _=>
-            Json.Null
-        }
-      case None=>
-        Json.Null
-    }
-
-    override final def apply(a: Option[EventPayload]): Json = getPayloadData(a)
-  }
-
-  implicit val encodeEvent: Encoder[Event] = new Encoder[Event] {
-    final def apply(event: Event): Json = Json.obj(
-      ("payloadId", Json.fromString(event.payloadId)),
-      ("eventType", event.eventType.asJson),
-      ("itemType", event.itemType.asJson),
-      ("dateTime", Json.fromLong(event.dateTime)),
-      ("payload", event.payload.asJson)
-    )
-  }
-
   //for some reason SNS gives a "Bad request" if you don't give a specific region to operate in and rely on auto-detection.
   def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
     case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
