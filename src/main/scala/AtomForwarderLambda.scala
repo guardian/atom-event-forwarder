@@ -38,6 +38,7 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
     val userRecords = UserRecord.deaggregate(rawRecords.asJava)
 
     logger.info(s"${context.getAwsRequestId} Processing ${userRecords.size} records ...")
+
     val processingFuture = CrierEventProcessor.process(userRecords.asScala) { (event, record)=>
       event.itemType match {
         case ItemType.Atom=>
@@ -45,31 +46,9 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
             case EventPayload.Atom(atom)=>
               logger.info(s"${context.getAwsRequestId} Got an atom payload, forwarding on...")
               SNSHandler.tellSNS(event, context.getAwsRequestId)
-//              Future.sequence(Seq(
-//                SNSHandler.tellSNS(event, context.getAwsRequestId),
-//                KinesisHandler.tellKinesis(record)
-//              )).map({ futureSeq=>
-//                //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
-//                futureSeq.head || futureSeq(1)
-//              })
             case _=>
               Future(false)
           }).getOrElse(Future(false))
-//        case ItemType.Content=>
-//          event.payload.map({
-//            case EventPayload.Content(content)=>
-//              logger.info(s"${context.getAwsRequestId} Got a content payload, forwarding on...")
-//              Future.sequence(Seq(
-//                SNSHandler.tellSNS(event, context.getAwsRequestId),
-//                KinesisHandler.tellKinesis(record)
-//              )).map({ futureSeq=>
-//                //each of the handlers return Future[Bool]. We're happy if either succeeds, right now.
-//                futureSeq.head || futureSeq(1)
-//              })
-//            case _=>
-//              logger.error(s"${context.getAwsRequestId} Got a non-content payload for a content event")
-//              Future(false)
-//          }).getOrElse(Future(false))
         case _=>
           logger.warn(s"${context.getAwsRequestId} This event is for a ${itemTypeAsString(event.itemType)} ${eventTypeAsString(event.eventType)}, not going to do anything.")
           Future(false)
@@ -81,7 +60,7 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
     })
 
     logger.info(s"${context.getAwsRequestId} waiting for threads")
-    Await.result(processingFuture, 30 seconds)
+    Await.result(processingFuture, (context.getRemainingTimeInMillis-100) millis)
     logger.info(s"${context.getAwsRequestId} completed")
   }
 }

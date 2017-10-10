@@ -35,8 +35,6 @@ object SNSHandler extends CrossAccount with Logging {
         payload match {
           case EventPayload.Atom(atom)=>
             Json.obj(("atom", atom.asInstanceOf[Atom].asJson))
-          case EventPayload.Content(content)=>
-            Json.obj(("content", content.asInstanceOf[Content].asJson))
           case _=>
             Json.Null
         }
@@ -45,9 +43,6 @@ object SNSHandler extends CrossAccount with Logging {
     }
 
     override final def apply(a: Option[EventPayload]): Json = getPayloadData(a)
-//    final def apply(maybePayload: Option[EventPayload]): Json = Json.obj(
-//      ("content",getPayloadData(maybePayload))
-//    )
   }
 
   implicit val encodeEvent: Encoder[Event] = new Encoder[Event] {
@@ -60,7 +55,7 @@ object SNSHandler extends CrossAccount with Logging {
     )
   }
 
-  //def getClient:AmazonSNSClient = new AmazonSNSClient(assumeRoleCredentials)
+  //for some reason SNS gives a "Bad request" if you don't give a specific region to operate in and rely on auto-detection.
   def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
     case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
     case None=>AmazonSNSClientBuilder.standard ().withCredentials (assumeRoleCredentials).build ()
@@ -95,7 +90,7 @@ object SNSHandler extends CrossAccount with Logging {
             } catch {
               case e:SdkBaseException=>
                 logger.error(s"$awsId Unable to send message: ${e.getMessage}")
-                false
+                throw e
             }
           case None=>
             logger.info(s"$awsId This wasn't a known event so not touching it.")
