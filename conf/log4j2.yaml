@@ -12,7 +12,3 @@ Configuration:
       level: debug
       AppenderRef:
         - ref: ConsoleAppender
-    com.amazonaws.AmazonWebServiceClient:
-      level: info
-      AppenderRef:
-        - ref: ConsoleAppender
