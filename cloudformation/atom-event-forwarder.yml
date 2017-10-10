@@ -106,8 +106,8 @@ Resources:
       Runtime: java8
       Timeout: 30
       MemorySize: 512
-#      DeadLetterConfig:
-#        TargetArn: !GetAtt DeadLetterQueue.Arn
+      DeadLetterConfig:
+        TargetArn: !GetAtt DeadLetterQueue.Arn
       Environment:
         Variables:
           CRIER_STREAM: !Ref CapiStreamArn
@@ -118,13 +118,6 @@ Resources:
           #this is needed as SNS sdk seems to fail if an explicit region is not provided :(
           EXPLICIT_REGION: !Ref "AWS::Region"
           THREADS: !Ref ThreadCount
-#  LambdaInvokePermission:
-#    Type: AWS::Lambda::Permission
-#    Properties:
-#      Action: lambda:InvokeFunction
-#      Principal: kinesis.amazonaws.com
-#      SourceArn: !Ref CapiStreamArn
-#      FunctionName: !Sub ${LaunchDetectorLambda.Arn}
   LambdaEventSourceMapping:
     Type: AWS::Lambda::EventSourceMapping
     Properties:
