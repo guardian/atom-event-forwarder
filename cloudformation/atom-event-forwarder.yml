@@ -114,7 +114,6 @@ Resources:
           DESTINATION_STREAM_NAME: !Ref DestinationStreamName
           DESTINATION_TOPIC_ARN: !Ref DestinationTopicArn
           CROSS_ACCOUNT_ROLE_ARN: !Ref CrossAccountRoleArn
-          JAVA_TOOL_OPTIONS: !Sub -Dscala.concurrent.context.numThreads=${ThreadCount} -Dscala.concurrent.context.maxThreads=${ThreadCount}
           #this is needed as SNS sdk seems to fail if an explicit region is not provided :(
           EXPLICIT_REGION: !Ref "AWS::Region"
           THREADS: !Ref ThreadCount
