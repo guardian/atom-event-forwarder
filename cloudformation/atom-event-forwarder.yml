@@ -59,16 +59,6 @@ Resources:
                 - logs:CreateLogStream
                 - logs:PutLogEvents
                 Resource: "*"
-        - PolicyName: LambdaVPCAccess
-          PolicyDocument:
-              Version: 2012-10-17
-              Statement:
-                Effect: Allow
-                Action:
-                - ec2:CreateNetworkInterface
-                - ec2:DescribeNetworkInterfaces
-                - ec2:DeleteNetworkInterface
-                Resource: "*"
         - PolicyName: LambdaDLQAccess
           PolicyDocument:
               Version: 2012-10-17
@@ -77,7 +67,8 @@ Resources:
                 Action:
                 - sqs:SendMessage
                 - sqs:SendMessageBatch
-                Resource: !GetAtt DeadLetterQueue.Arn
+                Resource:
+                - !GetAtt DeadLetterQueue.Arn
         - PolicyName: KinesisAccess
           PolicyDocument:
               Version: 2012-10-17
@@ -89,15 +80,17 @@ Resources:
                 - kinesis:DescribeStream
                 - kinesis:ListStreams
                 #??? - does this need to be *???
-                Resource: !Ref CapiStreamArn
+                Resource:
+                - !Ref CapiStreamArn
         - PolicyName: CrossAccountAccess
           PolicyDocument:
               Version: 2012-10-17
               Statement:
                 Effect: Allow
                 Action:
-                - sts:AssumeRule
-                Resource: !Ref CrossAccountRoleArn
+                - sts:AssumeRole
+                Resource:
+                - !Ref CrossAccountRoleArn
   DeadLetterQueue:
     Type: AWS::SQS::Queue
   LaunchDetectorLambda:
@@ -111,8 +104,8 @@ Resources:
       Handler: AtomForwarderLambda
       Role: !Sub ${LambdaRole.Arn}
       Runtime: java8
-      Timeout: 60
-      MemorySize: 256
+      Timeout: 30
+      MemorySize: 512
 #      DeadLetterConfig:
 #        TargetArn: !GetAtt DeadLetterQueue.Arn
       Environment:
