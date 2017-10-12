@@ -5,10 +5,10 @@ import com.amazonaws.services.kinesis.AmazonKinesisClientBuilder
 import com.amazonaws.services.kinesis.model.{PutRecordRequest, Record}
 import org.apache.logging.log4j.scala.Logging
 
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{ExecutionContext, Future}
 
 object KinesisHandler extends CrossAccount with Logging {
+  implicit val ec:ExecutionContext = ThreadExecContext.ec
 
   def tellKinesis(record: Record):Future[Boolean] = Future {
     val client = AmazonKinesisClientBuilder.standard().withCredentials(assumeRoleCredentials).build()
