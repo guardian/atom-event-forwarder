@@ -10,30 +10,25 @@ import io.circe.generic.auto._
 import io.circe.syntax._
 import com.gu.contentapi.json.CirceEncoders._
 import com.gu.fezziwig.CirceScroogeMacros.{encodeThriftStruct, encodeThriftUnion}
+import java.util.Base64
+import java.nio.charset.StandardCharsets
 
 object SNSHandler extends CrossAccount with Logging {
-/*
-  def payloadId : _root_.scala.Predef.String
-  def eventType : com.gu.crier.model.event.v1.EventType
-  def itemType : com.gu.crier.model.event.v1.ItemType
-  def dateTime : scala.Long
-  def payload : scala.Option[com.gu.crier.model.event.v1.EventPayload]
- */
   implicit val ec:ExecutionContext = ThreadExecContext.ec
 
   //for some reason SNS gives a "Bad request" if you don't give a specific region to operate in and rely on auto-detection.
   def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
+    case Some("mock")=>
     case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
     case None=>AmazonSNSClientBuilder.standard ().withCredentials (assumeRoleCredentials).build ()
   }
 
-  def eventToJson(event: Event): Json = event.asJson
-
-  def tellSNS(event:Event, awsId: String):Future[Boolean] = Future {
+  def tellSNS(event:Event, rawData:Array[Byte], awsId: String):Future[Boolean] = Future {
     sys.env.get("DESTINATION_TOPIC_ARN") match {
       case Some(topicArn)=>
-        val json = eventToJson(event)
-        val rq = new PublishRequest().withTopicArn(topicArn).withMessage(json.noSpaces)
+        val message = Base64.getEncoder.encodeToString(rawData)
+        val rq = new PublishRequest().withTopicArn(topicArn).withMessage(message)
+
         try {
           val result = getClient.publish(rq)
           logger.info(s"$awsId Message has been sent with ID ${result.getMessageId}")

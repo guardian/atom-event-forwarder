@@ -45,6 +45,10 @@ libraryDependencies ++= Seq(
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.5.4"
 )
 
+// https://mvnrepository.com/artifact/org.mockito/mockito-all
+libraryDependencies += "org.mockito" % "mockito-all" % "1.10.19" % "test"
+
+
 lazy val app = (project in file(".")).settings(
   organization := "com.theguardian",
   assemblyJarName in assembly := "atom-event-forwarder.jar",

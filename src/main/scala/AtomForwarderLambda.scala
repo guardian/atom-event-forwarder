@@ -45,7 +45,7 @@ class AtomForwarderLambda extends RequestHandler[KinesisEvent, Unit] with Loggin
           event.payload.map({
             case EventPayload.Atom(atom)=>
               logger.info(s"${context.getAwsRequestId} Got an atom payload, forwarding on...")
-              SNSHandler.tellSNS(event, context.getAwsRequestId)
+              SNSHandler.tellSNS(event, record.getData.array(), context.getAwsRequestId)
             case _=>
               Future(false)
           }).getOrElse(Future(false))
