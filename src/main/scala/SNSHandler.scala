@@ -18,7 +18,6 @@ object SNSHandler extends CrossAccount with Logging {
 
   //for some reason SNS gives a "Bad request" if you don't give a specific region to operate in and rely on auto-detection.
   def getClient:AmazonSNS = sys.env.get("EXPLICIT_REGION") match {
-    case Some("mock")=>
     case Some(region_name)=>AmazonSNSClientBuilder.standard ().withRegion(region_name).withCredentials (assumeRoleCredentials).build ()
     case None=>AmazonSNSClientBuilder.standard ().withCredentials (assumeRoleCredentials).build ()
   }
